@@ -44,22 +44,22 @@ export const translations = {
       text: "AI-powered stress awareness, burnout risk visibility, and daily wellbeing support for schools and organizations. Not a medical diagnosis product.",
     },
     home: {
-      eyebrow: "Turn stress signals into early support",
-      headline: "AI Wellbeing Intelligence for Schools and High-Pressure Teams",
+      eyebrow: "Wellbeing Intelligence Layer",
+      headline: "The Operating System for Human Wellbeing",
       subheadline:
-        "HumanOS helps schools and organizations turn stress, sleep, focus, workload, motivation, and emotional wellbeing signals into early support through private check-ins, AI daily plans, and anonymized dashboards.",
+        "HumanOS helps schools and organizations turn stress, sleep, focus, workload, motivation, and emotional wellbeing trends into early-support intelligence, anonymous dashboards, and a future wellbeing ecosystem.",
       market: "Macao-first pilot platform for schools, universities, resorts, service teams, and HR departments.",
       problemTitle: "Support often arrives too late.",
       problemBody:
         "Schools and organizations often rely on reactive support, low-frequency surveys, and fragmented wellbeing resources.",
-      solutionTitle: "HumanOS turns wellbeing signals into action.",
+      solutionTitle: "HumanOS turns wellbeing signals into intelligence.",
       solutionBody:
-        "Private check-ins become AI wellbeing reports, daily support plans, personal dashboards, and anonymized institution dashboards.",
+        "Private check-ins become early-support intelligence, daily support plans, personal dashboards, and anonymized institution dashboards.",
       privacyTitle: "Privacy-first by design.",
       privacyBody:
         "Institutions see anonymous trends. Individuals keep private reflections private.",
-      businessTitle: "Pilot-ready B2B model.",
-      roadmapTitle: "Roadmap from MVP to wellbeing platform.",
+      businessTitle: "Pilot-ready B2B intelligence model.",
+      roadmapTitle: "Roadmap from MVP to wellbeing ecosystem.",
     },
     demo: {
       headline: "A clickable wellbeing flow from check-in to early support.",
@@ -239,21 +239,21 @@ export const translations = {
       text: "HumanOS 提供壓力覺察、倦怠風險 awareness 及每日福祉支援，面向學校與機構。不屬於醫療診斷產品。",
     },
     home: {
-      eyebrow: "把壓力訊號轉化成早期支援",
-      headline: "面向學校與高壓團隊的 AI 福祉智能平台",
+      eyebrow: "Wellbeing Intelligence Layer",
+      headline: "The Operating System for Human Wellbeing",
       subheadline:
-        "HumanOS 幫助學校與機構將壓力、睡眠、專注、工作量、動力及情緒福祉訊號，轉化為早期支援、AI 每日計劃及匿名化管理儀表板。",
+        "HumanOS 幫助學校與機構將壓力、睡眠、專注、工作量、動力及情緒福祉趨勢，轉化為早期支援智能、匿名化儀表板及未來 wellbeing ecosystem。",
       market: "以澳門為首個試點市場，面向學校、大學、酒店、度假村、服務團隊及 HR 部門。",
       problemTitle: "很多支援，都來得太遲。",
       problemBody:
         "學校與機構往往依賴被動支援、低頻問卷及分散的福祉資源，難以及早掌握趨勢。",
-      solutionTitle: "HumanOS 將福祉訊號轉化為行動。",
+      solutionTitle: "HumanOS 將福祉訊號轉化為 intelligence。",
       solutionBody:
-        "私密 check-in 會轉化成 AI 福祉報告、每日支援計劃、個人儀表板及匿名化機構儀表板。",
+        "私密 check-in 會轉化成早期支援 intelligence、每日支援計劃、個人儀表板及匿名化機構儀表板。",
       privacyTitle: "私隱優先設計。",
       privacyBody: "機構只看到匿名趨勢；個人反思及私人內容保持私密。",
-      businessTitle: "適合試點落地的 B2B 模式。",
-      roadmapTitle: "由 MVP 走向完整福祉智能平台。",
+      businessTitle: "適合試點落地的 B2B intelligence 模式。",
+      roadmapTitle: "由 MVP 走向 wellbeing ecosystem。",
     },
     demo: {
       headline: "由 check-in 到早期支援的互動 Demo。",

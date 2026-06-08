@@ -16,22 +16,22 @@ export function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/88 text-white backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
+    <header className="sticky top-0 z-50 border-b border-black/5 bg-white/82 text-[#1d1d1f] backdrop-blur-xl">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 lg:px-8">
         <Link href="/" className="flex items-center gap-3" aria-label="HumanOS home">
-          <span className="grid size-10 place-items-center rounded-lg bg-white text-slate-950">
+          <span className="grid size-10 place-items-center rounded-2xl bg-[#f5f5f7] text-[#007aff] ring-1 ring-black/5">
               <ScanHeart className="size-5" aria-hidden="true" />
           </span>
           <span>
             <span className="block text-base font-semibold leading-5">HumanOS</span>
-            <span className="block text-xs font-medium text-slate-400">
+            <span className="block text-xs font-medium text-[#6e6e73]">
               {t.nav.subtitle}
             </span>
           </span>
         </Link>
-        <div className="hidden items-center gap-6 text-sm font-medium text-slate-300 md:flex">
+        <div className="hidden items-center gap-6 text-sm font-medium text-[#6e6e73] md:flex">
           {navItems.map(([label, href]) => (
-            <Link key={href} href={href} className="transition hover:text-white">
+            <Link key={href} href={href} className="transition hover:text-[#007aff]">
               {label}
             </Link>
           ))}
@@ -40,7 +40,7 @@ export function Navbar() {
           <LanguageSwitcher locale={locale} setLocale={setLocale} />
           <Link
             href="/contact"
-            className="hidden items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-sm transition hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-cyan-300 sm:inline-flex"
+            className="hidden items-center justify-center gap-2 rounded-full bg-[#007aff] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0066d6] focus:outline-none focus:ring-2 focus:ring-[#007aff] focus:ring-offset-2 sm:inline-flex"
           >
             <Sparkles className="size-4" aria-hidden="true" />
             {t.nav.contact}
@@ -59,16 +59,16 @@ function LanguageSwitcher({
   setLocale: (locale: Locale) => void;
 }) {
   return (
-    <div className="flex rounded-lg border border-white/15 bg-white/5 p-1 text-xs font-semibold">
+    <div className="flex rounded-full border border-black/5 bg-[#f5f5f7] p-1 text-xs font-semibold">
       {(["en", "zh"] as const).map((item) => (
         <button
           key={item}
           type="button"
           onClick={() => setLocale(item)}
-          className={`rounded-md px-2.5 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-cyan-300 ${
+          className={`rounded-full px-2.5 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-[#007aff] ${
             locale === item
-              ? "bg-white text-slate-950"
-              : "text-slate-300 hover:text-white"
+              ? "bg-white text-[#1d1d1f] shadow-sm"
+              : "text-[#6e6e73] hover:text-[#007aff]"
           }`}
           aria-pressed={locale === item}
         >
@@ -83,17 +83,17 @@ export function Footer() {
   const { t } = useI18n();
 
   return (
-    <footer className="border-t border-slate-200 bg-white py-10">
-      <div className="mx-auto grid max-w-7xl gap-6 px-5 text-sm text-slate-500 md:grid-cols-[1fr_auto] md:items-center lg:px-8">
+    <footer className="border-t border-black/5 bg-[#f5f5f7] py-10">
+      <div className="mx-auto grid max-w-7xl gap-6 px-5 text-sm text-[#6e6e73] md:grid-cols-[1fr_auto] md:items-center lg:px-8">
         <div>
-          <p className="text-lg font-semibold text-slate-950">HumanOS</p>
+          <p className="text-lg font-semibold text-[#1d1d1f]">HumanOS</p>
           <p className="mt-2 max-w-2xl leading-6">
             {t.footer.text}
           </p>
         </div>
         <Link
           href="/waitlist"
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 py-3 font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1d1d1f] px-5 py-3 font-semibold text-white transition hover:bg-black focus:outline-none focus:ring-2 focus:ring-[#007aff] focus:ring-offset-2"
         >
           {t.cta.startPilot}
           <ArrowRight className="size-4" aria-hidden="true" />
