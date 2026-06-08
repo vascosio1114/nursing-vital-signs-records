@@ -464,7 +464,7 @@ export default function AdminPage() {
       <section className="mx-auto max-w-7xl space-y-5 px-4 py-6">
         <p className="rounded-md border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950">
           This platform is for nursing education and practice documentation only. It
-          is not intended for medical diagnosis or treatment.
+          is not intended for clinical decision-making.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
