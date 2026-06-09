@@ -1,814 +1,540 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
+import { useEffect } from "react";
 import {
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  ClipboardCheck,
-  ClipboardList,
+  ArrowRight,
+  BellRing,
+  Brain,
+  BriefcaseBusiness,
+  CalendarDays,
+  ChevronDown,
   HeartPulse,
-  Shield,
-  Stethoscope,
-  Thermometer,
-  Wind,
+  Layers3,
+  LockKeyhole,
+  Moon,
+  Plug,
+  Rocket,
+  School,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Zap,
 } from "lucide-react";
-import {
-  ApiError,
-  armOptions,
-  measurementPositions,
-  oxygenModes,
-  patientTypes,
-  pulseRhythms,
-  pulseSites,
-  respirationQualities,
-  temperatureRoutes,
-  yesNoOptions,
-} from "@/lib/types";
-import { abnormalMessages } from "@/lib/validation";
+import { Footer, Navbar } from "@/components/humanos/layout";
+import { RechartsRadarPanel, RechartsTrendPanel } from "@/components/humanos/recharts-panels";
+import { useI18n } from "@/lib/i18n";
 
-type FormState = {
-  studentName: string;
-  studentId: string;
-  classGroup: string;
-  measuredDate: string;
-  measuredTime: string;
-  patientType: string;
-  temperature: string;
-  temperatureRoute: string;
-  pulseRate: string;
-  pulseSite: string;
-  pulseRhythm: string;
-  respirationRate: string;
-  respirationQuality: string;
-  systolicBp: string;
-  diastolicBp: string;
-  armUsed: string;
-  position: string;
-  spo2: string;
-  oxygenMode: string;
-  painScore: string;
-  notes: string;
-  studentReflection: string;
-  checklistCompleted: string;
-};
+const healthSignals = [
+  { key: "stressIndex", value: "Moderate", color: "from-[#ff375f] to-[#ff9f0a]", icon: HeartPulse },
+  { key: "sleepRecovery", value: "64", color: "from-[#5856d6] to-[#5ac8fa]", icon: Moon },
+  { key: "focusScore", value: "72", color: "from-[#007aff] to-[#64d2ff]", icon: Brain },
+  { key: "motivation", value: "68", color: "from-[#34c759] to-[#a2f06e]", icon: Zap },
+] as const;
 
-const checklistSections = [
-  {
-    title: "Before procedure / 程序前",
-    items: [
-      "Hand hygiene",
-      "Introduce self",
-      "Confirm patient identity",
-      "Explain procedure",
-      "Prepare equipment",
-    ],
-  },
-  {
-    title: "During procedure / 程序中",
-    items: [
-      "Measure temperature",
-      "Measure pulse",
-      "Measure respirations",
-      "Measure blood pressure",
-      "Measure oxygen saturation",
-      "Assess pain",
-    ],
-  },
-  {
-    title: "After procedure / 程序後",
-    items: [
-      "Ensure patient comfort",
-      "Clean equipment",
-      "Hand hygiene",
-      "Document findings",
-      "Report abnormalities immediately",
-    ],
-  },
-];
+const supportCards = [
+  { icon: School, href: "/students", label: "Students", tone: "bg-[#eaf5ff] text-[#007aff]" },
+  { icon: BriefcaseBusiness, href: "/organizations", label: "Organizations", tone: "bg-[#eefcf3] text-[#248a3d]" },
+  { icon: LockKeyhole, href: "/privacy", label: "Privacy", tone: "bg-[#fff4df] text-[#b25000]" },
+] as const;
 
-const learningCards = [
-  {
-    title: "General Preparation Checklist",
-    icon: ClipboardCheck,
-    points: [
-      "Equipment check",
-      "Patient preparation",
-      "Confirm patient identity using 2 identifiers",
-      "Explain procedure",
-      "Ensure privacy",
-      "Hand hygiene",
-      "Proper patient positioning",
-      "Avoid smoking, exercise, caffeine, and talking during measurement",
-    ],
-  },
-  {
-    title: "Temperature Procedure",
-    icon: Thermometer,
-    points: [
-      "Normal adult oral range: 36.5°C - 37.5°C",
-      "Oral temperature checklist",
-      "Observe fever, hypothermia, sweating, chills",
-      "Documentation example: T: 37.1°C oral",
-    ],
-  },
-  {
-    title: "Pulse / Heart Rate Procedure",
-    icon: HeartPulse,
-    points: [
-      "Normal adult range: 60-100 bpm",
-      "Sites: radial, apical, carotid, brachial",
-      "Radial pulse procedure",
-      "Assess rate, rhythm, strength, equality bilaterally",
-      "Documentation example: P: 78 bpm, regular, strong",
-    ],
-  },
-  {
-    title: "Respiration Procedure",
-    icon: Wind,
-    points: [
-      "Normal adult range: 12-20 breaths/min",
-      "Count respirations",
-      "Assess rate, rhythm, depth, effort",
-      "Observe dyspnea, labored breathing, accessory muscles, cyanosis",
-      "Documentation example: R: 16/min, regular, unlabored",
-    ],
-  },
-  {
-    title: "Blood Pressure Procedure",
-    icon: Stethoscope,
-    points: [
-      "Normal adult BP: approximately 120/80 mmHg",
-      "Manual BP checklist",
-      "Correct cuff size",
-      "Arm supported at heart level",
-      "Deflate cuff slowly at 2-3 mmHg/sec",
-      "First sound = systolic",
-      "Last sound = diastolic",
-      "Abnormal findings: hypertension, hypotension, orthostatic hypotension",
-      "Documentation example: BP: 118/76 mmHg, left arm, sitting",
-    ],
-  },
-  {
-    title: "Oxygen Saturation Procedure",
-    icon: Activity,
-    points: [
-      "Normal range: 95%-100%",
-      "Pulse oximeter checklist",
-      "Warm finger, no nail polish, stable reading",
-      "Record SpO2 and pulse rate",
-      "Observe cyanosis, respiratory distress, low perfusion",
-      "Documentation example: SpO2: 98% RA",
-    ],
-  },
-  {
-    title: "Pain Assessment",
-    icon: ClipboardList,
-    points: [
-      "0-10 numeric pain scale",
-      "Ask location, intensity, duration, character, aggravating factors, relieving factors",
-      "Documentation example: Pain: 3/10, dull abdominal pain",
-    ],
-  },
-];
+const intelligenceComparisons = [
+  ["CRM", "Customers", "管客戶"],
+  ["ERP", "Operations", "管公司"],
+  ["HumanOS", "Wellbeing", "管 Wellbeing"],
+] as const;
 
-const warningValues = [
-  "Temperature > 38°C",
-  "Temperature < 35°C",
-  "Pulse < 50 bpm",
-  "Pulse > 120 bpm",
-  "Irregular rhythm",
-  "Respiration < 10/min",
-  "Respiration > 24/min",
-  "Respiratory distress",
-  "Systolic BP < 90 mmHg",
-  "Systolic BP > 180 mmHg",
-  "SpO2 < 92%",
-];
+const startupValue = [
+  {
+    icon: BellRing,
+    titleEn: "Early Support Intelligence",
+    titleZh: "早期支援智能",
+    bodyEn: "HumanOS does not wait until problems become incidents. It detects patterns when sleep drops, focus declines, and stress rises over consecutive weeks.",
+    bodyZh: "HumanOS 唔係等問題發生先介入，而係當睡眠下降、專注下降、壓力上升連續出現時，提早提醒。",
+  },
+  {
+    icon: School,
+    titleEn: "School Intelligence",
+    titleZh: "學校智能",
+    bodyEn: "Schools can finally see which classes are under pressure, which anonymous groups sleep poorly, and which wellbeing activities help.",
+    bodyZh: "學校第一次可以匿名知道邊啲班級壓力高、邊啲學生群組睡眠差、邊啲活動真係有幫助。",
+  },
+  {
+    icon: BriefcaseBusiness,
+    titleEn: "Workforce Intelligence",
+    titleZh: "企業員工智能",
+    bodyEn: "Organizations can understand department stress, shift-work sleep disruption, and which wellbeing campaigns actually move the needle.",
+    bodyZh: "企業第一次可以匿名知道邊個部門壓力高、邊個輪班組睡眠差、邊啲 wellbeing campaign 有效。",
+  },
+] as const;
 
-const initialForm: FormState = {
-  studentName: "",
-  studentId: "",
-  classGroup: "",
-  measuredDate: getTodayDateInputValue(),
-  measuredTime: "",
-  patientType: "adult_simulated",
-  temperature: "",
-  temperatureRoute: "oral",
-  pulseRate: "",
-  pulseSite: "radial",
-  pulseRhythm: "regular",
-  respirationRate: "",
-  respirationQuality: "regular_unlabored",
-  systolicBp: "",
-  diastolicBp: "",
-  armUsed: "left",
-  position: "sitting",
-  spo2: "",
-  oxygenMode: "room_air",
-  painScore: "",
-  notes: "",
-  studentReflection: "",
-  checklistCompleted: "no",
-};
+const ecosystemBlocks = [
+  {
+    icon: Layers3,
+    titleEn: "HumanOS Ecosystem",
+    titleZh: "HumanOS 生態系",
+    bodyEn: "The platform can expand from wellbeing into brain health, sleep health, nutrition, fitness, meditation, and coaching.",
+    bodyZh: "未來唔止 wellbeing，可以接 Brain Health、Sleep Health、Nutrition、Fitness、Meditation、Coaching。",
+  },
+  {
+    icon: Plug,
+    titleEn: "Plugin Platform",
+    titleZh: "Plugin Platform",
+    bodyEn: "Third parties such as coaches, nutritionists, wellness providers, and vertical products can plug into the HumanOS layer.",
+    bodyZh: "第三方例如 coach、nutritionist、wellness provider 或 MindLubella 類產品，都可以接入 HumanOS。",
+  },
+  {
+    icon: ShoppingBag,
+    titleEn: "Marketplace",
+    titleZh: "Marketplace",
+    bodyEn: "HumanOS can connect schools, HR teams, coaches, consultants, courses, and wellbeing services through one operating layer.",
+    bodyZh: "HumanOS 可以連接學校、HR、教練、顧問、課程同 wellbeing services，形成 marketplace。",
+  },
+] as const;
 
-const labels: Record<string, string> = {
-  adult_simulated: "Adult simulated patient / 成人模擬病人",
-  real_clinical: "Real clinical patient / 真實臨床病人",
-  oral: "Oral / 口腔",
-  axillary: "Axillary / 腋下",
-  tympanic: "Tympanic / 耳溫",
-  radial: "Radial / 橈動脈",
-  apical: "Apical / 心尖",
-  carotid: "Carotid / 頸動脈",
-  brachial: "Brachial / 肱動脈",
-  regular: "Regular / 規則",
-  irregular: "Irregular / 不規則",
-  regular_unlabored: "Regular, unlabored / 規則、無費力",
-  labored: "Labored / 費力",
-  shallow: "Shallow / 淺",
-  deep: "Deep / 深",
-  left: "Left / 左",
-  right: "Right / 右",
-  sitting: "Sitting / 坐位",
-  standing: "Standing / 站立",
-  lying: "Lying / 平臥",
-  room_air: "Room air / 室內空氣",
-  oxygen_therapy: "Oxygen therapy / 氧氣治療",
-  yes: "Yes / 是",
-  no: "No / 否",
-};
+const schoolPilotStats = [
+  ["3 months", "Pilot runway", "三個月試點"],
+  ["300+", "Student cohort", "學生群組"],
+  ["6", "Wellbeing signals", "六個福祉訊號"],
+  ["Weekly", "Anonymous report", "每週匿名報告"],
+] as const;
 
 export default function HomePage() {
-  const [form, setForm] = useState<FormState>(initialForm);
-  const [checks, setChecks] = useState<Record<string, boolean>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [status, setStatus] = useState<"idle" | "saving" | "success">("idle");
-  const [message, setMessage] = useState("");
+  const { locale, t } = useI18n();
 
-  const warnings = useMemo(() => getFormWarnings(form), [form]);
+  useEffect(() => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setStatus("saving");
-    setErrors({});
-    setMessage("");
+    const items = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.18 },
+    );
 
-    const response = await fetch("/api/records", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        temperature: Number(form.temperature),
-        pulseRate: Number(form.pulseRate),
-        respirationRate: Number(form.respirationRate),
-        systolicBp: Number(form.systolicBp),
-        diastolicBp: Number(form.diastolicBp),
-        spo2: Number(form.spo2),
-        painScore: Number(form.painScore),
-      }),
-    });
+    items.forEach((item) => observer.observe(item));
+    return () => observer.disconnect();
+  }, []);
 
-    if (!response.ok) {
-      const body = (await response.json().catch(() => null)) as ApiError | null;
-      setErrors(body?.details ?? {});
-      setMessage(body?.error ?? "Submission failed / 提交失敗");
-      setStatus("idle");
-      return;
-    }
-
-    setStatus("success");
-    setMessage("Vital signs practice record submitted. / 生命體徵練習記錄已提交。");
-    setForm({ ...initialForm, measuredDate: getTodayDateInputValue() });
-    setChecks({});
-  }
-
-  function updateField(field: keyof FormState, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
-  }
-
-  function updateCheck(item: string, checked: boolean) {
-    setChecks((current) => ({ ...current, [item]: checked }));
-  }
+  const heroLine =
+    locale === "zh"
+      ? "CRM 管客戶，ERP 管公司，HumanOS 管人嘅 Wellbeing。"
+      : "CRM manages customers. ERP manages operations. HumanOS manages wellbeing.";
+  const insightCopy =
+    locale === "zh"
+      ? ["睡眠恢復下降", "壓力訊號上升", "建議今日降低認知負荷"]
+      : ["Sleep recovery declined", "Stress signals rising", "Reduce cognitive load today"];
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
-      <header className="border-b border-blue-100 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-blue-600 text-white">
-              <Activity className="size-7" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-emerald-700">
-                Adult Patient - Nursing / Clinical Practice
-              </p>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Vital Signs Procedures & Checklists
-              </h1>
+    <main className="min-h-screen overflow-hidden bg-[#f5f5f7] text-[#1d1d1f]">
+      <Navbar />
+
+      <section className="relative isolate bg-white">
+        <div className="absolute inset-x-0 top-0 h-80 bg-[radial-gradient(circle_at_25%_20%,rgba(255,55,95,0.16),transparent_30%),radial-gradient(circle_at_74%_18%,rgba(52,199,89,0.18),transparent_28%),radial-gradient(circle_at_52%_0%,rgba(0,122,255,0.16),transparent_34%)]" />
+        <div className="relative mx-auto grid min-h-[calc(100vh-72px)] max-w-7xl items-center gap-10 px-5 py-14 lg:grid-cols-[0.92fr_1.08fr] lg:px-8">
+          <div className="max-w-3xl">
+            <p className="home-kicker inline-flex items-center gap-2 rounded-full bg-[#f5f5f7] px-4 py-2 text-sm font-semibold text-[#007aff] shadow-sm ring-1 ring-black/5">
+              <Sparkles className="size-4" aria-hidden="true" />
+              {t.home.eyebrow}
+            </p>
+            <h1 className="hero-title mt-7 text-[clamp(3.4rem,8.4vw,7.6rem)] font-semibold leading-[0.94] tracking-normal text-[#1d1d1f]">
+              <span>{locale === "zh" ? "HumanOS" : "HumanOS"}</span>
+              <span>{locale === "zh" ? "唔係 App。" : "is not an app."}</span>
+            </h1>
+            <p className="hero-copy mt-7 max-w-2xl text-xl font-medium leading-8 text-[#6e6e73] sm:text-2xl sm:leading-9">
+              {heroLine}
+            </p>
+            <p className="hero-copy mt-5 max-w-2xl text-base leading-7 text-[#6e6e73]">
+              {locale === "zh"
+                ? "HumanOS 係 Wellbeing Intelligence Layer：將學生同員工嘅壓力、睡眠、專注、動力及情緒趨勢，轉化成早期支援、匿名學校/企業洞察，並逐步成為 The Operating System for Human Wellbeing。"
+                : "HumanOS is a Wellbeing Intelligence Layer: turning stress, sleep, focus, motivation, and emotional trends into early support, anonymous school and workforce intelligence, and eventually the Operating System for Human Wellbeing."}
+            </p>
+            <div className="hero-actions mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/contact"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#007aff] px-6 py-3.5 text-base font-semibold text-white shadow-[0_18px_40px_rgba(0,122,255,0.25)] transition hover:-translate-y-0.5 hover:bg-[#0066d6] focus:outline-none focus:ring-2 focus:ring-[#007aff] focus:ring-offset-2"
+              >
+                {t.cta.startPilot}
+                <ArrowRight className="size-5" aria-hidden="true" />
+              </Link>
+              <Link
+                href="#intro"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#f5f5f7] px-6 py-3.5 text-base font-semibold text-[#1d1d1f] ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#007aff] focus:ring-offset-2"
+              >
+                {locale === "zh" ? "了解產品" : "Explore"}
+                <ChevronDown className="size-5" aria-hidden="true" />
+              </Link>
             </div>
           </div>
-          <Link
-            href="/admin"
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-200 px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
-          >
-            <Shield className="size-4" aria-hidden="true" />
-            Teacher/Admin
-          </Link>
-        </div>
-      </header>
 
-      <section className="mx-auto max-w-7xl px-4 py-6 lg:py-8">
-        <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-medium leading-6 text-blue-950">
-          This platform is for nursing education and practice documentation only. It
-          is not intended for medical diagnosis or treatment.
+          <div className="relative mx-auto w-full max-w-[650px]">
+            <div className="health-orbit" aria-hidden="true">
+              <span className="ring ring-one" />
+              <span className="ring ring-two" />
+              <span className="ring ring-three" />
+            </div>
+            <div className="hero-device relative rounded-[2rem] bg-[#f5f5f7] p-3 shadow-[0_30px_90px_rgba(0,0,0,0.16)] ring-1 ring-black/8">
+              <div className="rounded-[1.5rem] bg-white p-5 ring-1 ring-black/5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[#6e6e73]">HumanOS Score</p>
+                    <p className="mt-1 text-6xl font-semibold tracking-normal text-[#1d1d1f]">78</p>
+                  </div>
+                  <div className="relative grid size-28 place-items-center rounded-full bg-[conic-gradient(#34c759_0_42%,#007aff_42%_72%,#ff9f0a_72%_86%,#ff375f_86%_100%)] p-2">
+                    <div className="grid size-full place-items-center rounded-full bg-white text-sm font-semibold text-[#1d1d1f]">
+                      Live
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  {healthSignals.map(({ key, value, color, icon: Icon }, index) => (
+                    <div
+                      key={key}
+                      className="signal-card rounded-[1.35rem] bg-[#f5f5f7] p-4 ring-1 ring-black/5"
+                      style={{ animationDelay: `${240 + index * 90}ms` }}
+                    >
+                      <div className={`grid size-11 place-items-center rounded-2xl bg-gradient-to-br ${color} text-white shadow-lg`}>
+                        <Icon className="size-5" aria-hidden="true" />
+                      </div>
+                      <p className="mt-5 text-sm font-semibold text-[#6e6e73]">{t.labels[key]}</p>
+                      <p className="mt-1 text-3xl font-semibold text-[#1d1d1f]">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="pop-chip pop-chip-one">
+              <BellRing className="size-4 text-[#ff375f]" aria-hidden="true" />
+              <span>{insightCopy[0]}</span>
+            </div>
+            <div className="pop-chip pop-chip-two">
+              <Sparkles className="size-4 text-[#007aff]" aria-hidden="true" />
+              <span>{insightCopy[1]}</span>
+            </div>
+            <div className="pop-chip pop-chip-three">
+              <ShieldCheck className="size-4 text-[#34c759]" aria-hidden="true" />
+              <span>{insightCopy[2]}</span>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-8">
-        <div className="mb-4 flex flex-wrap gap-2">
-          {["Temperature (T)", "Pulse / Heart Rate (P)", "Respiration Rate (R)", "Blood Pressure (BP)", "Oxygen Saturation (SpO2)", "Pain Score"].map((item) => (
-            <span
-              key={item}
-              className="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-800"
-            >
-              {item}
-            </span>
-          ))}
-        </div>
+      <section id="intro" className="bg-[#f5f5f7] py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+          <div className="mx-auto max-w-4xl text-center" data-reveal>
+            <p className="text-sm font-semibold text-[#007aff]">Level 3 · Startup Value</p>
+            <h2 className="mt-4 text-[clamp(2.5rem,6vw,5.8rem)] font-semibold leading-[0.98] tracking-normal">
+              {locale === "zh" ? "Wellbeing Intelligence Layer。" : "Wellbeing Intelligence Layer."}
+              <span className="block text-[#6e6e73]">
+                {locale === "zh" ? "開始似一間公司。" : "Now it starts to look like a company."}
+              </span>
+            </h2>
+            <p className="mx-auto mt-7 max-w-3xl text-lg leading-8 text-[#6e6e73]">
+              {locale === "zh"
+                ? "HumanOS 不是單一健康工具，而是一層跨學校與企業的 wellbeing intelligence：收集私密訊號、偵測趨勢、輸出早期支援。"
+                : "HumanOS is not a single health tool. It is a wellbeing intelligence layer across schools and organizations: private signals in, trend detection and early support out."}
+            </p>
+          </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {learningCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <article
-                key={card.title}
-                className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+          <div className="mt-12 grid gap-4 md:grid-cols-3">
+            {intelligenceComparisons.map(([system, en, zh], index) => (
+              <div
+                key={system}
+                data-reveal="slow"
+                className="rounded-[1.8rem] bg-white p-7 text-center shadow-sm ring-1 ring-black/5"
+                style={{ transitionDelay: `${index * 120}ms` }}
               >
-                <Icon className="mb-3 size-7 text-blue-600" aria-hidden="true" />
-                <h2 className="text-lg font-bold">{card.title}</h2>
-                <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
-                  {card.points.map((point) => (
-                    <li key={point} className="flex gap-2">
-                      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-emerald-500" />
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            );
-          })}
-        </div>
-      </section>
+                <p className="text-4xl font-semibold tracking-normal text-[#1d1d1f]">{system}</p>
+                <p className="mt-4 text-base font-semibold text-[#6e6e73]">
+                  {locale === "zh" ? zh : en}
+                </p>
+              </div>
+            ))}
+          </div>
 
-      <section className="mx-auto grid max-w-7xl gap-4 px-4 pb-8 lg:grid-cols-2">
-        <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-xl font-bold">Complete Vital Signs Checklist</h2>
-          <div className="mt-4 grid gap-5 sm:grid-cols-3">
-            {checklistSections.map((section) => (
-              <div key={section.title}>
-                <h3 className="text-sm font-bold text-blue-700">{section.title}</h3>
-                <div className="mt-3 space-y-3">
-                  {section.items.map((item) => (
-                    <label key={item} className="flex items-start gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(checks[item])}
-                        onChange={(event) => updateCheck(item, event.target.checked)}
-                        className="mt-1 size-4 rounded border-slate-300 accent-blue-600"
-                      />
-                      <span>{item}</span>
-                    </label>
-                  ))}
+          <div className="mt-14 grid gap-5 lg:grid-cols-3">
+            {supportCards.map(({ icon: Icon, href, label, tone }, index) => (
+              <Link
+                key={href}
+                href={href}
+                data-reveal
+                className="group rounded-[1.8rem] bg-white p-7 shadow-sm ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(0,0,0,0.10)]"
+                style={{ transitionDelay: `${index * 80}ms` }}
+              >
+                <div className={`grid size-14 place-items-center rounded-3xl ${tone}`}>
+                  <Icon className="size-7" aria-hidden="true" />
+                </div>
+                <h3 className="mt-8 text-3xl font-semibold tracking-normal text-[#1d1d1f]">{label}</h3>
+                <p className="mt-4 min-h-24 text-base leading-7 text-[#6e6e73]">
+                  {href === "/students"
+                    ? t.students.headline
+                    : href === "/organizations"
+                      ? t.organizations.headline
+                      : t.home.privacyBody}
+                </p>
+                <span className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-[#007aff]">
+                  {locale === "zh" ? "進一步了解" : "Learn more"}
+                  <ArrowRight className="size-4 transition group-hover:translate-x-1" aria-hidden="true" />
+                </span>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-20 space-y-6">
+            {startupValue.map(({ icon: Icon, titleEn, titleZh, bodyEn, bodyZh }, index) => (
+              <div
+                key={titleEn}
+                data-reveal={index % 2 === 0 ? "slide-left" : "slide-right"}
+                className="slide-panel grid gap-6 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-black/5 md:grid-cols-[0.8fr_1.2fr] md:items-center md:p-7"
+                style={{ transitionDelay: `${index * 120}ms` }}
+              >
+                <div className={`min-h-52 rounded-[1.5rem] bg-gradient-to-br ${
+                  index === 0 ? "from-[#ff375f] to-[#ff9f0a]" : index === 1 ? "from-[#007aff] to-[#64d2ff]" : "from-[#34c759] to-[#a2f06e]"
+                } p-6 text-white shadow-[0_24px_70px_rgba(0,0,0,0.12)]`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-white/76">0{index + 1}</span>
+                    <Icon className="size-9" aria-hidden="true" />
+                  </div>
+                  <div className="mt-20 h-2 overflow-hidden rounded-full bg-white/24">
+                    <div className="animated-bar h-full rounded-full bg-white" />
+                  </div>
+                </div>
+                <div className="px-1 md:px-4">
+                  <h3 className="text-[clamp(2rem,4vw,4.1rem)] font-semibold leading-none tracking-normal">
+                    {locale === "zh" ? titleZh : titleEn}
+                  </h3>
+                  <p className="mt-5 max-w-2xl text-lg leading-8 text-[#6e6e73]">
+                    {locale === "zh" ? bodyZh : bodyEn}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
-        </article>
-
-        <article className="rounded-lg border border-red-100 bg-white p-5 shadow-sm">
-          <h2 className="flex items-center gap-2 text-xl font-bold">
-            <AlertTriangle className="size-6 text-red-600" aria-hidden="true" />
-            Abnormal Vital Signs Reporting Guide
-          </h2>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {warningValues.map((value) => (
-              <span
-                key={value}
-                className="rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800"
-              >
-                {value}
-              </span>
-            ))}
-          </div>
-        </article>
+        </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-4 px-4 pb-8 lg:grid-cols-3">
-        <InfoPanel
-          title="Sample Documentation Format"
-          items={[
-            "Temperature: 37.2°C",
-            "Pulse: 76 bpm",
-            "Respiration: 16/min",
-            "Blood Pressure: 120/78 mmHg",
-            "SpO2: 99% RA",
-            "Pain: 2/10",
-          ]}
-        />
-        <InfoPanel
-          title="Infection Control Reminders"
-          items={[
-            "Hand hygiene before and after contact",
-            "Disinfect reusable equipment",
-            "Use PPE if required",
-            "Follow standard precautions",
-          ]}
-        />
-        <InfoPanel
-          title="WHO-style Key Safety Principles"
-          items={[
-            "Accurate patient identification",
-            "Hand hygiene",
-            "Proper equipment use",
-            "Timely reporting of deterioration",
-            "Correct documentation",
-            "Patient-centered communication",
-          ]}
-        />
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 pb-12">
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
-        >
-          <div className="mb-5">
-            <p className="text-sm font-semibold text-emerald-700">
-              Student Submission Form / 學生提交表格
-            </p>
-            <h2 className="text-2xl font-bold">Full Vital Signs Practice Record</h2>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="Student name / 學生姓名" error={errors.studentName}>
-              <input
-                required
-                value={form.studentName}
-                onChange={(event) => updateField("studentName", event.target.value)}
-                className="field-input"
-                autoComplete="name"
-              />
-            </Field>
-            <Field label="Student ID / 學號" error={errors.studentId}>
-              <input
-                required
-                value={form.studentId}
-                onChange={(event) => updateField("studentId", event.target.value)}
-                className="field-input"
-              />
-            </Field>
-            <Field label="Class / group 班別 / 小組" error={errors.classGroup}>
-              <input
-                required
-                value={form.classGroup}
-                onChange={(event) => updateField("classGroup", event.target.value)}
-                className="field-input"
-                placeholder="Nursing 1A"
-              />
-            </Field>
-            <Field label="Date / 日期" error={errors.measuredDate}>
-              <input
-                required
-                type="date"
-                value={form.measuredDate}
-                onChange={(event) => updateField("measuredDate", event.target.value)}
-                className="field-input"
-              />
-            </Field>
-            <Field label="Time / 時間" error={errors.measuredTime}>
-              <input
-                required
-                type="time"
-                value={form.measuredTime}
-                onChange={(event) => updateField("measuredTime", event.target.value)}
-                className="field-input"
-              />
-            </Field>
-            <SelectField
-              label="Patient type / 病人類型"
-              value={form.patientType}
-              options={patientTypes}
-              onChange={(value) => updateField("patientType", value)}
-              error={errors.patientType}
-            />
-            <Field label="Temperature °C / 體溫" error={errors.temperature}>
-              <input
-                required
-                type="number"
-                step="0.1"
-                inputMode="decimal"
-                value={form.temperature}
-                onChange={(event) => updateField("temperature", event.target.value)}
-                className={inputTone(warnings, "Temperature")}
-              />
-            </Field>
-            <SelectField
-              label="Temperature route / 體溫途徑"
-              value={form.temperatureRoute}
-              options={temperatureRoutes}
-              onChange={(value) => updateField("temperatureRoute", value)}
-              error={errors.temperatureRoute}
-            />
-            <Field label="Pulse rate bpm / 脈搏" error={errors.pulseRate}>
-              <input
-                required
-                type="number"
-                inputMode="numeric"
-                value={form.pulseRate}
-                onChange={(event) => updateField("pulseRate", event.target.value)}
-                className={inputTone(warnings, "Pulse")}
-              />
-            </Field>
-            <SelectField
-              label="Pulse site / 脈搏位置"
-              value={form.pulseSite}
-              options={pulseSites}
-              onChange={(value) => updateField("pulseSite", value)}
-              error={errors.pulseSite}
-            />
-            <SelectField
-              label="Pulse rhythm / 脈搏節律"
-              value={form.pulseRhythm}
-              options={pulseRhythms}
-              onChange={(value) => updateField("pulseRhythm", value)}
-              error={errors.pulseRhythm}
-            />
-            <Field label="Respiration rate / 呼吸次數" error={errors.respirationRate}>
-              <input
-                required
-                type="number"
-                inputMode="numeric"
-                value={form.respirationRate}
-                onChange={(event) => updateField("respirationRate", event.target.value)}
-                className={inputTone(warnings, "Respiration")}
-              />
-            </Field>
-            <SelectField
-              label="Respiration quality / 呼吸狀況"
-              value={form.respirationQuality}
-              options={respirationQualities}
-              onChange={(value) => updateField("respirationQuality", value)}
-              error={errors.respirationQuality}
-            />
-            <Field label="Systolic BP / 收縮壓" error={errors.systolicBp}>
-              <input
-                required
-                type="number"
-                inputMode="numeric"
-                value={form.systolicBp}
-                onChange={(event) => updateField("systolicBp", event.target.value)}
-                className={inputTone(warnings, "Systolic")}
-              />
-            </Field>
-            <Field label="Diastolic BP / 舒張壓" error={errors.diastolicBp}>
-              <input
-                required
-                type="number"
-                inputMode="numeric"
-                value={form.diastolicBp}
-                onChange={(event) => updateField("diastolicBp", event.target.value)}
-                className="field-input"
-              />
-            </Field>
-            <SelectField
-              label="Arm used / 手臂"
-              value={form.armUsed}
-              options={armOptions}
-              onChange={(value) => updateField("armUsed", value)}
-              error={errors.armUsed}
-            />
-            <SelectField
-              label="Position / 姿勢"
-              value={form.position}
-              options={measurementPositions}
-              onChange={(value) => updateField("position", value)}
-              error={errors.position}
-            />
-            <Field label="SpO2 % / 血氧" error={errors.spo2}>
-              <input
-                required
-                type="number"
-                inputMode="numeric"
-                value={form.spo2}
-                onChange={(event) => updateField("spo2", event.target.value)}
-                className={inputTone(warnings, "SpO2")}
-              />
-            </Field>
-            <SelectField
-              label="Room air or oxygen / 空氣或氧氣"
-              value={form.oxygenMode}
-              options={oxygenModes}
-              onChange={(value) => updateField("oxygenMode", value)}
-              error={errors.oxygenMode}
-            />
-            <Field label="Pain score 0-10 / 疼痛分數" error={errors.painScore}>
-              <input
-                required
-                type="number"
-                min="0"
-                max="10"
-                inputMode="numeric"
-                value={form.painScore}
-                onChange={(event) => updateField("painScore", event.target.value)}
-                className="field-input"
-              />
-            </Field>
-            <SelectField
-              label="Checklist completed / 清單完成"
-              value={form.checklistCompleted}
-              options={yesNoOptions}
-              onChange={(value) => updateField("checklistCompleted", value)}
-              error={errors.checklistCompleted}
-            />
-            <Field label="Notes / symptoms 備註 / 症狀" className="md:col-span-2">
-              <textarea
-                value={form.notes}
-                onChange={(event) => updateField("notes", event.target.value)}
-                className="field-input min-h-28 resize-y"
-              />
-            </Field>
-            <Field
-              label="Student reflection / 學生反思"
-              error={errors.studentReflection}
-              className="md:col-span-2 xl:col-span-3"
-            >
-              <textarea
-                required
-                value={form.studentReflection}
-                onChange={(event) =>
-                  updateField("studentReflection", event.target.value)
-                }
-                className="field-input min-h-28 resize-y"
-              />
-            </Field>
-          </div>
-
-          {warnings.length > 0 ? (
-            <div className="mt-5 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              <p className="font-bold">Warning before submission / 提交前提示</p>
-              <p className="mt-1">
-                Abnormal values are highlighted. Submission is still allowed for
-                teaching documentation.
+      <section className="relative isolate bg-white py-20 sm:py-28">
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,#ffffff_0%,#f5f5f7_100%)]" />
+        <div className="relative mx-auto max-w-7xl px-5 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+            <div data-reveal="slide-left">
+              <p className="inline-flex items-center gap-2 rounded-full bg-[#eaf5ff] px-4 py-2 text-sm font-semibold text-[#007aff]">
+                <School className="size-4" aria-hidden="true" />
+                School Pilot
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {warnings.map((warning) => (
-                  <span key={warning} className="rounded-md bg-white px-2 py-1 font-semibold">
-                    {warning}
-                  </span>
+              <h2 className="mt-5 text-[clamp(3.8rem,9vw,8.6rem)] font-semibold leading-[0.9] tracking-normal">
+                MOP
+                <span className="block text-[#007aff]">60,000</span>
+              </h2>
+              <p className="mt-6 max-w-xl text-lg leading-8 text-[#6e6e73]">
+                {locale === "zh"
+                  ? "一個適合學校即刻落地嘅三個月試點：私密 check-in、AI 每日支援、匿名化學校趨勢報告。"
+                  : "A three-month school pilot package built for fast rollout: private check-ins, AI daily support, and anonymous school trend reports."}
+              </p>
+            </div>
+
+            <div className="school-stack rounded-[2.2rem] bg-[#1d1d1f] p-5 text-white shadow-[0_30px_90px_rgba(0,0,0,0.18)] ring-1 ring-black/10" data-reveal="slide-right">
+              <div className="flex items-center justify-between rounded-[1.5rem] bg-white/[0.08] p-5 ring-1 ring-white/10">
+                <div>
+                  <p className="text-sm font-semibold text-white/58">Launch sequence</p>
+                  <p className="mt-2 text-2xl font-semibold">{locale === "zh" ? "由第 1 日開始有數據" : "Signal from day one"}</p>
+                </div>
+                <CalendarDays className="size-10 text-[#5ac8fa]" aria-hidden="true" />
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {schoolPilotStats.map(([value, labelEn, labelZh], index) => (
+                  <div
+                    key={value}
+                    className="slow-card rounded-[1.35rem] bg-white/[0.08] p-5 ring-1 ring-white/10"
+                    style={{ animationDelay: `${index * 220}ms` }}
+                  >
+                    <p className="text-3xl font-semibold tracking-normal">{value}</p>
+                    <p className="mt-3 text-sm font-semibold text-white/58">
+                      {locale === "zh" ? labelZh : labelEn}
+                    </p>
+                  </div>
                 ))}
               </div>
             </div>
-          ) : null}
+          </div>
 
-          {message ? (
-            <div
-              className={`mt-5 flex items-start gap-3 rounded-md border p-4 text-sm font-medium ${
-                status === "success"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-red-200 bg-red-50 text-red-700"
-              }`}
-            >
-              {status === "success" ? (
-                <CheckCircle2 className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-              ) : null}
-              <span>{message}</span>
-            </div>
-          ) : null}
-
-          <button
-            type="submit"
-            disabled={status === "saving"}
-            className="mt-6 w-full rounded-md bg-blue-600 px-5 py-4 text-base font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-          >
-            {status === "saving" ? "Submitting... / 提交中..." : "Submit vital signs record / 提交生命體徵記錄"}
-          </button>
-        </form>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {[
+              locale === "zh" ? "第 1 週：建立 baseline" : "Week 1: Baseline setup",
+              locale === "zh" ? "第 2-8 週：每日 AI 支援" : "Week 2-8: Daily AI support",
+              locale === "zh" ? "第 9-12 週：匿名成效報告" : "Week 9-12: Anonymous outcome report",
+            ].map((item, index) => (
+              <div
+                key={item}
+                data-reveal="slow"
+                className="rounded-[1.6rem] bg-white p-6 shadow-sm ring-1 ring-black/5"
+                style={{ transitionDelay: `${index * 180}ms` }}
+              >
+                <p className="text-sm font-semibold text-[#007aff]">0{index + 1}</p>
+                <p className="mt-8 text-xl font-semibold leading-7">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
+
+      <section className="bg-white py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+          <div className="mx-auto max-w-4xl text-center" data-reveal="slow">
+            <p className="text-sm font-semibold text-[#7d35ff]">Level 4 · VC Value</p>
+            <h2 className="mt-4 text-[clamp(2.6rem,6vw,5.8rem)] font-semibold leading-[0.98] tracking-normal">
+              {locale === "zh" ? "由產品，變成平台。" : "From product to platform."}
+              <span className="block text-[#6e6e73]">
+                {locale === "zh" ? "呢個開始有 scale。" : "This is where it starts to scale."}
+              </span>
+            </h2>
+            <p className="mx-auto mt-7 max-w-3xl text-lg leading-8 text-[#6e6e73]">
+              {locale === "zh"
+                ? "HumanOS 的投資價值不止於一個 wellbeing dashboard，而是未來可以承載健康、教練、課程及服務供應商的生態平台。"
+                : "The investment value is not just a wellbeing dashboard. HumanOS can become the platform layer for health modules, coaches, courses, and service providers."}
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-5 lg:grid-cols-3">
+            {ecosystemBlocks.map(({ icon: Icon, titleEn, titleZh, bodyEn, bodyZh }, index) => (
+              <div
+                key={titleEn}
+                data-reveal={index === 0 ? "slide-left" : index === 2 ? "slide-right" : "slow"}
+                className="rounded-[1.8rem] bg-[#f5f5f7] p-7 ring-1 ring-black/5"
+                style={{ transitionDelay: `${index * 120}ms` }}
+              >
+                <div className="grid size-14 place-items-center rounded-3xl bg-white text-[#7d35ff] shadow-sm ring-1 ring-black/5">
+                  <Icon className="size-7" aria-hidden="true" />
+                </div>
+                <h3 className="mt-8 text-3xl font-semibold leading-none tracking-normal">
+                  {locale === "zh" ? titleZh : titleEn}
+                </h3>
+                <p className="mt-5 text-base leading-7 text-[#6e6e73]">
+                  {locale === "zh" ? bodyZh : bodyEn}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#f5f5f7] py-20 sm:py-28">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:px-8">
+          <div data-reveal="slide-left">
+            <p className="text-sm font-semibold text-[#ff375f]">Level 5 · Big Vision</p>
+            <h2 className="mt-4 text-[clamp(2.8rem,7vw,7rem)] font-semibold leading-[0.92] tracking-normal">
+              {locale === "zh" ? "The Operating System for Human Wellbeing." : "The Operating System for Human Wellbeing."}
+            </h2>
+            <p className="mt-7 max-w-2xl text-lg leading-8 text-[#6e6e73]">
+              {locale === "zh"
+                ? "終局故事係：HumanOS 成為學校、企業、教練、顧問、課程同健康服務之間的核心 wellbeing layer。每個人有自己嘅 wellbeing profile；每個機構有匿名 intelligence；每個 provider 可以接入同提供支援。"
+                : "The endgame: HumanOS becomes the core wellbeing layer between schools, employers, coaches, consultants, courses, and health services. Individuals have a wellbeing profile, institutions get anonymous intelligence, and providers plug into the support network."}
+            </p>
+          </div>
+          <div data-reveal="slide-right" className="rounded-[2.2rem] bg-[#1d1d1f] p-5 text-white shadow-[0_30px_90px_rgba(0,0,0,0.18)]">
+            <div className="rounded-[1.6rem] bg-white/[0.08] p-5 ring-1 ring-white/10">
+              <Rocket className="size-10 text-[#5ac8fa]" aria-hidden="true" />
+              <p className="mt-12 text-4xl font-semibold leading-tight">
+                {locale === "zh" ? "一層連接所有 wellbeing 服務的操作系統。" : "One operating layer connecting every wellbeing service."}
+              </p>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {[
+                ["Schools", "學校"],
+                ["HR", "HR"],
+                ["Coaches", "教練"],
+                ["Courses", "課程"],
+                ["Consultants", "顧問"],
+                ["Wellness Providers", "Wellness Providers"],
+              ].map(([en, zh], index) => (
+                <div
+                  key={en}
+                  className="slow-card rounded-[1.25rem] bg-white/[0.08] p-4 text-sm font-semibold text-white/82 ring-1 ring-white/10"
+                  style={{ animationDelay: `${index * 120}ms` }}
+                >
+                  {locale === "zh" ? zh : en}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-20 sm:py-28">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:px-8">
+          <div data-reveal>
+            <p className="text-sm font-semibold text-[#ff375f]">Proof of Intelligence</p>
+            <h2 className="mt-4 text-[clamp(2.4rem,5vw,5rem)] font-semibold leading-none tracking-normal">
+              {locale === "zh" ? "由趨勢，變成早期支援。" : "From trends to early support."}
+            </h2>
+            <p className="mt-6 text-lg leading-8 text-[#6e6e73]">
+              {locale === "zh"
+                ? "當睡眠下降、專注下降、壓力上升連續兩星期，HumanOS 可以提醒學生、HR 或學校採取支援行動。"
+                : "When sleep declines, focus drops, and stress rises for consecutive weeks, HumanOS can trigger early support for students, HR, or schools."}
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div data-reveal className="rounded-[1.75rem] bg-[#f5f5f7] p-5 ring-1 ring-black/5">
+              <RechartsTrendPanel title={t.labels.weeklyTrend} />
+            </div>
+            <div data-reveal className="rounded-[1.75rem] bg-[#f5f5f7] p-5 ring-1 ring-black/5">
+              <RechartsRadarPanel />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#1d1d1f] py-20 text-white sm:py-28">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 lg:grid-cols-[1fr_1fr] lg:items-center lg:px-8">
+          <div data-reveal>
+            <p className="text-sm font-semibold text-[#5ac8fa]">Privacy</p>
+            <h2 className="mt-4 text-[clamp(2.6rem,5vw,5.5rem)] font-semibold leading-none tracking-normal">
+              {locale === "zh" ? "數據可以有用，亦可以保持私密。" : "Useful insight. Private by design."}
+            </h2>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-white/68">{t.privacy.responsible}</p>
+          </div>
+          <div className="space-y-3" data-reveal>
+            {t.privacy.canSee.slice(0, 4).map((item, index) => (
+              <div
+                key={item}
+                className="privacy-row flex items-center gap-4 rounded-3xl bg-white/[0.08] p-4 text-sm font-semibold text-white/88 ring-1 ring-white/10"
+                style={{ animationDelay: `${index * 120}ms` }}
+              >
+                <span className="grid size-10 place-items-center rounded-full bg-[#34c759]/18 text-[#34c759]">
+                  <ShieldCheck className="size-5" aria-hidden="true" />
+                </span>
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-16">
+        <div className="mx-auto max-w-5xl px-5 text-center lg:px-8" data-reveal>
+          <p className="text-sm font-semibold text-[#6e6e73]">
+            {locale === "zh" ? "Demo 已收埋，想試先打開。" : "Demo is tucked away until you want to try it."}
+          </p>
+          <Link
+            href="/demo"
+            className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#f5f5f7] px-6 py-3.5 text-base font-semibold text-[#1d1d1f] ring-1 ring-black/5 transition hover:bg-white hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#007aff] focus:ring-offset-2"
+          >
+            {t.cta.viewDemo}
+            <ArrowRight className="size-5" aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
+
+      <Footer />
     </main>
   );
-}
-
-function InfoPanel({ title, items }: { title: string; items: string[] }) {
-  return (
-    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-bold">{title}</h2>
-      <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
-        {items.map((item) => (
-          <li key={item} className="flex gap-2">
-            <span className="mt-2 size-1.5 shrink-0 rounded-full bg-blue-500" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    </article>
-  );
-}
-
-function SelectField<T extends readonly string[]>({
-  label,
-  value,
-  options,
-  onChange,
-  error,
-}: {
-  label: string;
-  value: string;
-  options: T;
-  onChange: (value: string) => void;
-  error?: string;
-}) {
-  return (
-    <Field label={label} error={error}>
-      <select
-        required
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="field-input"
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {labels[option] ?? option}
-          </option>
-        ))}
-      </select>
-    </Field>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-  className = "",
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <label className={`block ${className}`}>
-      <span className="mb-2 block text-sm font-semibold text-slate-800">{label}</span>
-      {children}
-      {error ? <span className="mt-2 block text-sm text-red-600">{error}</span> : null}
-    </label>
-  );
-}
-
-function getFormWarnings(form: FormState) {
-  const values = {
-    temperature: Number(form.temperature),
-    pulseRate: Number(form.pulseRate),
-    pulseRhythm: form.pulseRhythm,
-    respirationRate: Number(form.respirationRate),
-    respirationQuality: form.respirationQuality,
-    systolicBp: Number(form.systolicBp),
-    spo2: Number(form.spo2),
-  };
-
-  if (
-    !Number.isFinite(values.temperature) ||
-    !Number.isFinite(values.pulseRate) ||
-    !Number.isFinite(values.respirationRate) ||
-    !Number.isFinite(values.systolicBp) ||
-    !Number.isFinite(values.spo2)
-  ) {
-    return [];
-  }
-
-  return abnormalMessages({
-    ...values,
-    pulseRhythm: values.pulseRhythm as "regular" | "irregular",
-    respirationQuality: values.respirationQuality as
-      | "regular_unlabored"
-      | "irregular"
-      | "labored"
-      | "shallow"
-      | "deep",
-  });
-}
-
-function inputTone(warnings: string[], keyword: string) {
-  const abnormal = warnings.some((warning) => warning.includes(keyword));
-  return abnormal ? "field-input border-amber-400 bg-amber-50" : "field-input";
-}
-
-function getTodayDateInputValue() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
 }

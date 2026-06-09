@@ -11,10 +11,12 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
     "exceljs": "^4.4.0",
+    "gsap": "^3.15.0",
     "lucide-react": "latest",
     "next": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",
